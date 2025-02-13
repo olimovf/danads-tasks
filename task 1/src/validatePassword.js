@@ -11,28 +11,4 @@ const validatePassword = (pwd) => {
 	return regex.test(pwd);
 };
 
-/* without regex */
-
-// const validatePassword = (pwd) => {
-// 	if (pwd.length < 8 || pwd.length > 12) {
-// 		return false;
-// 	}
-
-// 	let hasUpper = false;
-// 	let hasLower = false;
-// 	let hasDigit = false;
-
-// 	for (const ch of pwd) {
-// 		if (ch >= "A" && ch <= "Z") {
-// 			hasUpper = true;
-// 		} else if (ch >= "a" && ch <= "z") {
-// 			hasLower = true;
-// 		} else if (ch >= "0" && ch <= "9") {
-// 			hasDigit = true;
-// 		}
-// 	}
-
-// 	return hasUpper && hasLower && hasDigit;
-// };
-
 module.exports = validatePassword;

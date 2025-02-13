@@ -11,7 +11,8 @@
 // 	- Non-numeric values (e.g., "abc", "two")
 
 const validateQuantity = (qty) => {
-	return Number.isInteger(qty) && qty > 0;
+	const numQty = Number(qty);
+	return Number.isInteger(numQty) && numQty > 0;
 };
 
 module.exports = validateQuantity;

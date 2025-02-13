@@ -7,8 +7,10 @@
 
 const calculateDiscount = (cost, isMember) => {
 	let discount = 0;
-	if (isMember) discount += 5;
-	if (cost > 100) discount += 10;
+
+	discount += isMember ? 5 : 0;
+	discount += cost > 100 ? 10 : 0;
+
 	return discount;
 };
 
