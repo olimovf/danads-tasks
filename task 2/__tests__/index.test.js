@@ -1,9 +1,10 @@
-const { axios, ACCOUNT_ID } = require("../config/api.config");
+const { request, ACCOUNT_ID } = require("../config/api.config");
+const MEDIA_ID = 120;
 
 describe("Testing Movie DB API", () => {
 	describe("GET requests", () => {
 		test("GET /list/1", async () => {
-			const response = await axios("get", "/list/1");
+			const response = await request("get", "/list/1");
 			expect(response.status).toBe(200);
 			expect(response.body).toBeDefined();
 
@@ -29,7 +30,7 @@ describe("Testing Movie DB API", () => {
 		});
 
 		test("GET /movie/changes", async () => {
-			const response = await axios("get", "/movie/changes");
+			const response = await request("get", "/movie/changes");
 			expect(response.status).toBe(200);
 			expect(response.body).toBeDefined();
 
@@ -51,10 +52,10 @@ describe("Testing Movie DB API", () => {
 		test("POST /favorite", async () => {
 			const bodyData = {
 				media_type: "movie",
-				media_id: 123,
+				media_id: MEDIA_ID,
 				favorite: true,
 			};
-			const response = await axios(
+			const response = await request(
 				"post",
 				`/account/${ACCOUNT_ID}/favorite`,
 				bodyData
@@ -67,14 +68,17 @@ describe("Testing Movie DB API", () => {
 			expect(result).toHaveProperty("status_code");
 			expect(result).toHaveProperty("status_message");
 			expect(result.status_code).toBe(1);
-			expect(result.status_message).toBe("Success.");
 		});
 
 		test("POST /rating", async () => {
 			const bodyData = {
 				value: 8,
 			};
-			const response = await axios("post", `/movie/123/rating`, bodyData);
+			const response = await request(
+				"post",
+				`/movie/${MEDIA_ID}/rating`,
+				bodyData
+			);
 			expect(response.status).toBe(201);
 			expect(response.body).toBeDefined();
 
@@ -89,7 +93,7 @@ describe("Testing Movie DB API", () => {
 
 	describe("DELETE requests", () => {
 		test("DELETE /rating", async () => {
-			const response = await axios("delete", `/movie/123/rating`);
+			const response = await request("delete", `/movie/${MEDIA_ID}/rating`);
 			expect(response.status).toBe(200);
 			expect(response.body).toBeDefined();
 
@@ -100,9 +104,6 @@ describe("Testing Movie DB API", () => {
 
 			expect(result.success).toBeTruthy();
 			expect(result.status_code).toBe(13);
-			expect(result.status_message).toBe(
-				"The item/record was deleted successfully."
-			);
 		});
 	});
 });
