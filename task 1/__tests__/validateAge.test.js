@@ -29,11 +29,11 @@ describe("Age Validation", () => {
 		expect(validateAge(case5)).toBe(false);
 	});
 
-	test(`Valid string age ('${case6}') should return true`, () => {
-		expect(validateAge(case6)).toBe(true);
+	test(`String age ('${case6}') should return false`, () => {
+		expect(validateAge(case6)).toBe(false);
 	});
 
-	test(`Invalid string age ('${case7}') should return false`, () => {
+	test(`String decimal age ('${case7}') should return false`, () => {
 		expect(validateAge(case7)).toBe(false);
 	});
 });

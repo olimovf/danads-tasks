@@ -29,11 +29,11 @@ describe("Quantity Validation", () => {
 		expect(validateQuantity(case5)).toBe(false);
 	});
 
-	test(`Valid string ('${case6}') should return true`, () => {
-		expect(validateQuantity(case6)).toBe(true);
+	test(`String number ('${case6}') should return false`, () => {
+		expect(validateQuantity(case6)).toBe(false);
 	});
 
-	test(`Invalid string ('${case7}') should return false`, () => {
+	test(`String decimal number ('${case7}') should return false`, () => {
 		expect(validateQuantity(case7)).toBe(false);
 	});
 });

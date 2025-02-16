@@ -4,8 +4,7 @@
 // Input Condition: Age
 
 const validateAge = (age) => {
-	const numAge = Number(age);
-	return Number.isInteger(numAge) && 18 <= numAge && numAge <= 60;
+	return Number.isInteger(age) && 18 <= age && age <= 60;
 };
 
 module.exports = validateAge;
