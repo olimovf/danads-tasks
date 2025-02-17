@@ -1,109 +1,166 @@
-const { request, ACCOUNT_ID } = require("../config/api.config");
-const MEDIA_ID = 120;
+const Request = require("../api/request");
+const { ACCOUNT_ID, USERNAME, PASSWORD } = require("../config/constants");
+const {
+	GET_LISTS_URL,
+	CREATE_LIST_URL,
+	ADD_MOVIE_URL,
+	GET_LIST_DETAILS_URL,
+	CLEAR_LIST_URL,
+	CHECK_LIST_STATUS_URL,
+	DELETE_LIST_URL,
+	CREATE_REQUEST_TOKEN_URL,
+	VALIDATE_REQUEST_TOKEN_URL,
+	CREATE_SESSION_URL,
+	DELETE_SESSION_URL,
+} = require("../config/movieDB");
 
-describe("Testing Movie DB API", () => {
-	describe("GET requests", () => {
-		test("GET /list/1", async () => {
-			const response = await request("get", "/list/1");
-			expect(response.status).toBe(200);
-			expect(response.body).toBeDefined();
+const request = new Request();
+const MEDIA_ID = 128;
 
-			const expectedKeys = [
-				"id",
-				"name",
-				"items",
-				"item_count",
-				"created_by",
-				"poster_path",
-				"description",
-			];
-			const receivedKeys = Object.keys(response.body);
-			expect(receivedKeys).toEqual(expect.arrayContaining(expectedKeys));
+describe("LIST requests", () => {
+	let listId;
+	let requestToken;
+	let sessionId;
 
-			const { items } = response.body;
-			expect(items).toBeInstanceOf(Array);
-			expect(items.length).toBeGreaterThan(0);
+	beforeAll(async () => {
+		// create a request token
+		const response = await request.get(CREATE_REQUEST_TOKEN_URL);
+		expect(response.status).toBe(200);
+		expect(response.body).toBeDefined();
+		expect(response.body.success).toBe(true);
 
-			const movie = items[0];
-			expect(movie).toHaveProperty("id");
-			expect(movie).toHaveProperty("title");
+		requestToken = response.body.request_token;
+
+		// validate the request token
+		const bodyData = {
+			username: USERNAME,
+			password: PASSWORD,
+			request_token: requestToken,
+		};
+		const validateResponse = await request.post(
+			VALIDATE_REQUEST_TOKEN_URL,
+			bodyData
+		);
+		expect(validateResponse.status).toBe(200);
+		expect(validateResponse.body).toBeDefined();
+		expect(validateResponse.body.success).toBe(true);
+
+		// create a new session
+		const sessionResponse = await request.post(CREATE_SESSION_URL, {
+			request_token: requestToken,
 		});
+		expect(sessionResponse.status).toBe(200);
+		expect(sessionResponse.body).toBeDefined();
+		expect(sessionResponse.body.success).toBe(true);
 
-		test("GET /movie/changes", async () => {
-			const response = await request("get", "/movie/changes");
-			expect(response.status).toBe(200);
-			expect(response.body).toBeDefined();
+		sessionId = sessionResponse.body.session_id;
+	});
 
-			const expectedKeys = ["results", "page", "total_pages", "total_results"];
-			const receivedKeys = Object.keys(response.body);
-			expect(receivedKeys).toEqual(expect.arrayContaining(expectedKeys));
+	afterAll(async () => {
+		// delete the session
+		const bodyData = {
+			session_id: sessionId,
+		};
+		const response = await request.delete(DELETE_SESSION_URL, bodyData);
 
-			const { results } = response.body;
-			expect(results).toBeInstanceOf(Array);
-			expect(results.length).toBeGreaterThan(0);
-
-			const movie = results[0];
-			expect(movie).toHaveProperty("id");
-			expect(movie).toHaveProperty("adult");
+		expect(response.status).toBe(200);
+		expect(response.body).toEqual({
+			success: true,
 		});
 	});
 
-	describe("POST requests", () => {
-		test("POST /favorite", async () => {
-			const bodyData = {
-				media_type: "movie",
-				media_id: MEDIA_ID,
-				favorite: true,
-			};
-			const response = await request(
-				"post",
-				`/account/${ACCOUNT_ID}/favorite`,
-				bodyData
-			);
-
-			expect(response.status).toBe(201);
-			expect(response.body).toBeDefined();
-
-			const result = response.body;
-			expect(result).toHaveProperty("status_code");
-			expect(result).toHaveProperty("status_message");
-			expect(result.status_code).toBe(1);
+	test("should create a new list", async () => {
+		const bodyData = {
+			name: "My List 1",
+			description: "This is my list 1",
+			language: "uz",
+		};
+		const response = await request.post(CREATE_LIST_URL, bodyData, {
+			session_id: sessionId,
 		});
 
-		test("POST /rating", async () => {
-			const bodyData = {
-				value: 8,
-			};
-			const response = await request(
-				"post",
-				`/movie/${MEDIA_ID}/rating`,
-				bodyData
-			);
-			expect(response.status).toBe(201);
-			expect(response.body).toBeDefined();
+		expect(response.status).toBe(201);
+		expect(response.body).toBeDefined();
+		expect(response.body.success).toBe(true);
 
-			const result = response.body;
-			expect(result).toEqual({
-				success: true,
-				status_code: 1,
-				status_message: "Success.",
-			});
+		listId = response.body.list_id;
+	});
+
+	test("should get the lists and find the created list", async () => {
+		const url = GET_LISTS_URL(ACCOUNT_ID);
+		const response = await request.get(url, { session_id: sessionId });
+		expect(response.status).toBe(200);
+		expect(response.body).toBeDefined();
+
+		const expectedKeys = ["results", "page", "total_pages", "total_results"];
+		const receivedKeys = Object.keys(response.body);
+		expect(receivedKeys).toEqual(expect.arrayContaining(expectedKeys));
+
+		const { results } = response.body;
+		expect(results).toBeInstanceOf(Array);
+		expect(results.length).toBeGreaterThan(0);
+
+		const myList = results.find((list) => list.id === listId);
+		expect(myList).toBeDefined();
+	});
+
+	test("should add a movie to the list", async () => {
+		const url = ADD_MOVIE_URL(listId);
+		const bodyData = {
+			media_id: MEDIA_ID,
+		};
+		const response = await request.post(url, bodyData, {
+			session_id: sessionId,
+		});
+
+		expect(response.status).toBe(201);
+		expect(response.body).toBeDefined();
+		expect(response.body.success).toBe(true);
+	});
+
+	test("should check if the new movie has been added to the list", async () => {
+		const url = CHECK_LIST_STATUS_URL(listId);
+		const response = await request.get(url, { movie_id: MEDIA_ID });
+
+		expect(response.status).toBe(200);
+		expect(response.body).toBeDefined();
+		expect(response.body).toEqual({
+			id: listId.toString(),
+			item_present: true,
 		});
 	});
 
-	describe("DELETE requests", () => {
-		test("DELETE /rating", async () => {
-			const response = await request("delete", `/movie/${MEDIA_ID}/rating`);
-			expect(response.status).toBe(200);
-			expect(response.body).toBeDefined();
-
-			const result = response.body;
-			expect(result).toHaveProperty("success");
-			expect(result).toHaveProperty("status_code");
-			expect(result).toHaveProperty("status_message");
-
-			expect(result.success).toBeTruthy();
-			expect(result.status_code).toBe(13);
+	test("should clear the list", async () => {
+		const url = CLEAR_LIST_URL(listId);
+		const response = await request.post(url, null, {
+			confirm: true,
+			session_id: sessionId,
 		});
+
+		expect(response.status).toBe(201);
+		expect(response.body).toBeDefined();
+		expect(response.body.success).toBe(true);
+	});
+
+	test("should get the list details and be empty list", async () => {
+		const url = GET_LIST_DETAILS_URL(listId);
+		const response = await request.get(url);
+
+		expect(response.status).toBe(200);
+		expect(response.body).toBeDefined();
+		expect(response.body).toHaveProperty("items");
+
+		const { items } = response.body;
+		expect(items).toBeInstanceOf(Array);
+		expect(items.length).toBe(0);
+	});
+
+	test("should delete the list", async () => {
+		const url = DELETE_LIST_URL(listId);
+		const response = await request.delete(url);
+
+		expect(response.status).toBe(200);
+		expect(response.body).toBeDefined();
+		expect(response.body.success).toBe(true);
 	});
 });
