@@ -2,3 +2,4 @@
 /coverage
 /html-report
 .env
+package-lock.json
