@@ -1,6 +1,8 @@
 import Request from "../api/request";
+import { Validator } from "jsonschema";
 import { CONFIG } from "../config";
 import { MOVIE_DB } from "../config/movieDB";
+import { SCHEMAS } from "../config/schema";
 
 const { ACCOUNT_ID, USERNAME, PASSWORD } = CONFIG;
 const {
@@ -17,14 +19,17 @@ const {
 	CREATE_SESSION_URL,
 	DELETE_SESSION_URL,
 } = MOVIE_DB;
+const { LISTS_SCHEMA, LIST_DETAILS_SCHEMA } = SCHEMAS;
 
 const request = new Request();
+const validator = new Validator();
 const MEDIA_ID = 128;
 
 const initializeListId = async (sessionId: string): Promise<number> => {
+	const randomId = Math.floor(Math.random() * 1e6);
 	const bodyData = {
-		name: "My New List 5",
-		description: "This is my new list 5",
+		name: `My new list ${randomId}`,
+		description: `This is a description for the list ${randomId}`,
 		language: "uz",
 	};
 	const response = await request.post(CREATE_LIST_URL, bodyData, {
@@ -98,15 +103,13 @@ describe("LIST requests", () => {
 			expect(response.status).toBe(200);
 			expect(response.body).toBeDefined();
 
-			const expectedKeys = ["results", "page", "total_pages", "total_results"];
-			const receivedKeys = Object.keys(response.body);
-			expect(receivedKeys).toEqual(expect.arrayContaining(expectedKeys));
+			const validationResult = validator.validate(response.body, LISTS_SCHEMA);
+			expect(validationResult.errors).toHaveLength(0);
+			expect(validationResult.valid).toBeTruthy();
 
-			const { results } = response.body;
-			expect(results).toBeInstanceOf(Array);
-			expect(results.length).toBeGreaterThan(0);
-
-			const myList = results.find((list: { id: number }) => list.id === listId);
+			const myList = response.body.results.find(
+				(list: { id: number }) => list.id === listId
+			);
 			expect(myList).toBeDefined();
 		});
 
@@ -154,13 +157,14 @@ describe("LIST requests", () => {
 			const url = GET_LIST_DETAILS_URL(listId);
 			const response = await request.get(url);
 
-			expect(response.status).toBe(200);
-			expect(response.body).toBeDefined();
-			expect(response.body).toHaveProperty("items");
+			const validationResult = validator.validate(
+				response.body,
+				LIST_DETAILS_SCHEMA
+			);
+			expect(validationResult.errors).toHaveLength(0);
+			expect(validationResult.valid).toBeTruthy();
 
-			const { items } = response.body;
-			expect(items).toBeInstanceOf(Array);
-			expect(items.length).toBe(0);
+			expect(response.body.items.length).toBe(0);
 		});
 
 		test("should delete the list", async () => {
